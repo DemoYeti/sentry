@@ -423,9 +423,16 @@ class EventManagerGroupingMetricsTest(TestCase):
             transition_expiry,
             expected_in_transition,
         ) in in_transition_cases:
-            for has_flag, expected_using_optimization in optimized_logic_cases:
-                with self.feature(
-                    {"organizations:grouping-suppress-unnecessary-secondary-hash": has_flag}
+            for using_optimization, expected_using_optimization in optimized_logic_cases:
+                with (
+                    mock.patch(
+                        "sentry.event_manager.project_uses_optimized_grouping",
+                        return_value=using_optimization,
+                    ),
+                    mock.patch(
+                        "sentry.grouping.ingest.metrics.project_uses_optimized_grouping",
+                        return_value=using_optimization,
+                    ),
                 ):
                     mock_metrics_incr.reset_mock()
 
