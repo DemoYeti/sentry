@@ -4,6 +4,7 @@ import logging
 from collections.abc import MutableMapping
 from typing import TYPE_CHECKING, Any
 
+from sentry import options
 from sentry.grouping.api import GroupingConfig
 from sentry.grouping.ingest.config import is_in_transition, project_uses_optimized_grouping
 from sentry.grouping.ingest.utils import extract_hashes
@@ -46,7 +47,11 @@ def record_hash_calculation_metrics(
             else:
                 tags["result"] = "full change"
 
-        metrics.incr("grouping.hash_comparison", tags=tags)
+        metrics.incr(
+            "grouping.hash_comparison",
+            sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
+            tags=tags,
+        )
 
 
 # TODO: Once the legacy `_save_aggregate` goes away, this logic can be pulled into
@@ -65,8 +70,17 @@ def record_calculation_metric_with_result(
         "using_transition_optimization": str(project_uses_optimized_grouping(project)),
         "result": result,
     }
-    metrics.incr("grouping.event_hashes_calculated", tags=tags)
-    metrics.incr("grouping.total_calculations", amount=2 if has_secondary_hashes else 1, tags=tags)
+    metrics.incr(
+        "grouping.event_hashes_calculated",
+        sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
+        tags=tags,
+    )
+    metrics.incr(
+        "grouping.total_calculations",
+        amount=2 if has_secondary_hashes else 1,
+        sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
+        tags=tags,
+    )
 
 
 def record_new_group_metrics(event: Event) -> None:
