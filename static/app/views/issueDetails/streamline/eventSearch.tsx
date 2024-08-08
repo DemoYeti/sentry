@@ -3,12 +3,22 @@ import orderBy from 'lodash/orderBy';
 
 import {useFetchIssueTags} from 'sentry/actionCreators/group';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {
+  SearchQueryBuilder,
+  type SearchQueryBuilderProps,
+} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
+import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
+import {Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import type {Group, Tag, TagCollection} from 'sentry/types/group';
-import {FieldKind, ISSUE_EVENT_PROPERTY_FIELDS} from 'sentry/utils/fields';
+import {
+  FieldKind,
+  getFieldDefinition,
+  ISSUE_EVENT_PROPERTY_FIELDS,
+} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/groupEvents';
@@ -21,6 +31,63 @@ interface EventSearchProps {
   handleSearch: (value: string) => void;
   query: string;
   className?: string;
+  queryBuilderProps?: Partial<SearchQueryBuilderProps>;
+}
+
+export function useEventQuery({organization, group, environments}): string {
+  const location = useLocation();
+  const {data = []} = useFetchIssueTags({
+    orgSlug: organization.slug,
+    groupId: group.id,
+    environment: environments,
+  });
+
+  const filterKeys = useEventSearchFilterKeys(data);
+  const {query: locationQuery} = location.query;
+  let eventQuery = '';
+
+  if (Array.isArray(locationQuery)) {
+    eventQuery = locationQuery.join(' ');
+  } else if (typeof locationQuery === 'string') {
+    eventQuery = locationQuery;
+  }
+
+  const parsedQuery =
+    parseQueryBuilderValue(eventQuery, getFieldDefinition, {
+      filterKeys,
+    }) ?? [];
+  const validQuery = parsedQuery.filter(token => {
+    if (token.type === Token.FREE_TEXT) {
+      return false;
+    }
+    if (token.type === Token.FILTER && !filterKeys.hasOwnProperty(token.key.text)) {
+      return false;
+    }
+    return true;
+  });
+
+  console.log({validQuery});
+
+  return eventQuery;
+}
+
+function useEventSearchFilterKeys(data) {
+  const filterKeys = useMemo<TagCollection>(() => {
+    const tags = [
+      ...data.map(tag => ({...tag, kind: FieldKind.TAG})),
+      ...ISSUE_EVENT_PROPERTY_FIELDS.map(tag => ({
+        key: tag,
+        name: tag,
+        kind: FieldKind.EVENT_FIELD,
+      })),
+    ].filter(tag => !ALL_EVENTS_EXCLUDED_TAGS.includes(tag.key));
+
+    return tags.reduce<TagCollection>((acc, tag) => {
+      acc[tag.key] = tag;
+      return acc;
+    }, {});
+  }, [data]);
+  return filterKeys;
 }
 
 function getFilterKeySections(tags: TagCollection): FilterKeySection[] {
@@ -57,6 +124,7 @@ export function EventSearch({
   group,
   environments,
   handleSearch,
+  queryBuilderProps = {},
 }: EventSearchProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -67,21 +135,7 @@ export function EventSearch({
     environment: environments,
   });
 
-  const filterKeys = useMemo<TagCollection>(() => {
-    const tags = [
-      ...data.map(tag => ({...tag, kind: FieldKind.TAG})),
-      ...ISSUE_EVENT_PROPERTY_FIELDS.map(tag => ({
-        key: tag,
-        name: tag,
-        kind: FieldKind.EVENT_FIELD,
-      })),
-    ].filter(tag => !ALL_EVENTS_EXCLUDED_TAGS.includes(tag.key));
-
-    return tags.reduce<TagCollection>((acc, tag) => {
-      acc[tag.key] = tag;
-      return acc;
-    }, {});
-  }, [data]);
+  const filterKeys = useEventSearchFilterKeys(data);
 
   const tagValueLoader = useCallback(
     async (key: string, search: string) => {
@@ -129,6 +183,7 @@ export function EventSearch({
       placeholder={t('Search events...')}
       searchSource="issue_events_tab"
       className={className}
+      {...queryBuilderProps}
     />
   );
 }

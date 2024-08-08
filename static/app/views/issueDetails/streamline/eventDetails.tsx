@@ -4,13 +4,17 @@ import styled from '@emotion/styled';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   DefaultGroupEventDetailsContent,
   type GroupEventDetailsContentProps,
 } from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
-import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {
+  EventSearch,
+  useEventQuery,
+} from 'sentry/views/issueDetails/streamline/eventSearch';
 import {Section} from 'sentry/views/issueDetails/streamline/foldSection';
 
 export interface EventDetailsContextType {
@@ -31,23 +35,30 @@ export function EventDetails({
   project,
 }: Required<GroupEventDetailsContentProps>) {
   const navRef = useRef<HTMLDivElement>(null);
+  const organization = useOrganization();
   const {selection} = usePageFilters();
   const {environments} = selection;
+
+  const searchQuery = useEventQuery({environments, organization, group});
   const [eventDetails, setEventDetails] = useState<EventDetailsContextType>({
-    searchQuery: '',
+    searchQuery,
   });
 
   return (
     <EventDetailsContext.Provider value={eventDetails}>
+      {JSON.stringify(searchQuery)}
       <FilterContainer>
         <EnvironmentPageFilter />
         <SearchFilter
           group={group}
-          handleSearch={searchQuery => {
-            setEventDetails(details => ({...details, searchQuery}));
+          handleSearch={sq => {
+            setEventDetails(details => ({...details, searchQuery: sq}));
           }}
           environments={environments}
           query={eventDetails.searchQuery}
+          queryBuilderProps={{
+            disallowFreeText: true,
+          }}
         />
         <DatePageFilter />
       </FilterContainer>
