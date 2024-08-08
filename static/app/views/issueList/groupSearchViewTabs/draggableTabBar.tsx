@@ -12,29 +12,38 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import QueryCount from 'sentry/components/queryCount';
 import {Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {DraggableTabMenuButton} from 'sentry/views/issueList/groupSearchViewTabs/draggableTabMenuButton';
 import EditableTabTitle from 'sentry/views/issueList/groupSearchViewTabs/editableTabTitle';
+import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
+// TODO(michaelsun): Move params that aren't necessary to draggableTabBar to parent
 export interface Tab {
   key: string;
   label: string;
+  query: string;
+  querySort: IssueSortOptions;
   content?: React.ReactNode;
-  hasUnsavedChanges?: boolean;
-  query?: string;
+  id?: string;
   queryCount?: number;
   to?: LocationDescriptor;
+  unsavedChanges?: [string, IssueSortOptions];
 }
 
 export interface DraggableTabBarProps {
+  /**
+   * Callback function to be called when the user reorders the tabs. Returns the
+   * new order of the tabs along with their props.
+   */
+  onReorder: (newOrder: Node<DraggableTabListItemProps>[]) => void;
   selectedTabKey: string;
   setSelectedTabKey: (key: string) => void;
   setTabs: (tabs: Tab[]) => void;
   showTempTab: boolean;
   tabs: Tab[];
-  tempTab: Tab;
-  defaultNewTab?: Tab;
-  onAddView?: React.MouseEventHandler;
+  /**
+   * Callback function to be called when user clicks the `Add View` button.
+   */
+  onAddView?: () => void;
   /**
    * Callback function to be called when user clicks the `Delete` button.
    * Note: The `Delete` button only appears for persistent views
@@ -69,6 +78,7 @@ export interface DraggableTabBarProps {
    * Note: The `Rename` button only appears for persistent views
    */
   onTabRenamed?: (key: MenuItemProps['key'], newLabel: string) => void;
+  tempTab?: Tab;
   tempTabContent?: React.ReactNode;
   tempTabLabel?: string;
 }
@@ -79,8 +89,8 @@ export function DraggableTabBar({
   tabs,
   setTabs,
   tempTab,
-  defaultNewTab,
   showTempTab,
+  onReorder,
   onAddView,
   onDelete,
   onDiscard,
@@ -99,48 +109,6 @@ export function DraggableTabBar({
     }
   }, [showTempTab, selectedTabKey, setSelectedTabKey, tabs]);
 
-  const onReorder: (newOrder: Node<DraggableTabListItemProps>[]) => void = newOrder => {
-    setTabs(
-      newOrder
-        .map(node => {
-          const foundTab = tabs.find(tab => tab.key === node.key);
-          return foundTab?.key === node.key ? foundTab : null;
-        })
-        .filter(defined)
-    );
-  };
-
-  const handleOnDelete = (tab: Tab) => {
-    if (tabs.length > 1) {
-      setTabs(tabs.filter(tb => tb.key !== tab.key));
-      onDelete?.(tab.key);
-    }
-  };
-
-  const handleOnDuplicate = (tab: Tab) => {
-    const idx = tabs.findIndex(tb => tb.key === tab.key);
-    if (idx !== -1) {
-      setTabs([
-        ...tabs.slice(0, idx + 1),
-        {
-          ...tab,
-          key: `${tab.key}-copy`,
-          label: `${tab.label} (Copy)`,
-          hasUnsavedChanges: false,
-        },
-        ...tabs.slice(idx + 1),
-      ]);
-      onDuplicate?.(tab.key);
-    }
-  };
-
-  const handleOnAddView = (e: React.MouseEvent<Element, MouseEvent>) => {
-    if (defaultNewTab) {
-      setTabs([...tabs, defaultNewTab]);
-    }
-    onAddView?.(e);
-  };
-
   const handleOnTabRenamed = (newLabel: string, tabKey: string) => {
     const tab = tabs.find(tb => tb.key === tabKey);
     if (tab && newLabel !== tab.label) {
@@ -156,21 +124,23 @@ export function DraggableTabBar({
         onDiscard: () => onDiscardTempView?.(),
       });
     }
-    if (tab.hasUnsavedChanges) {
+    if (tab.unsavedChanges) {
       return makeUnsavedChangesMenuOptions({
         onRename: () => setEditingTabKey(tab.key),
-        onDuplicate: () => handleOnDuplicate(tab),
-        onDelete: tabs.length > 1 ? () => handleOnDelete(tab) : undefined,
+        onDuplicate: () => onDuplicate?.(tab.key),
+        onDelete: tabs.length > 1 ? () => onDelete?.(tab.key) : undefined,
         onSave: () => onSave?.(tab.key),
         onDiscard: () => onDiscard?.(tab.key),
       });
     }
     return makeDefaultMenuOptions({
       onRename: () => setEditingTabKey(tab.key),
-      onDuplicate: () => handleOnDuplicate(tab),
-      onDelete: tabs.length > 1 ? () => handleOnDelete(tab) : undefined,
+      onDuplicate: () => onDuplicate?.(tab.key),
+      onDelete: tabs.length > 1 ? () => onDelete?.(tab.key) : undefined,
     });
   };
+
+  const allTabs = tempTab ? [...tabs, tempTab] : tabs;
 
   return (
     <Tabs value={selectedTabKey} onChange={setSelectedTabKey}>
@@ -178,18 +148,18 @@ export function DraggableTabBar({
         onReorder={onReorder}
         selectedKey={selectedTabKey}
         showTempTab={showTempTab}
-        onAddView={e => handleOnAddView(e)}
+        onAddView={onAddView}
         orientation="horizontal"
         hideBorder
       >
-        {[...tabs, tempTab].map(tab => (
+        {allTabs.map(tab => (
           <DraggableTabList.Item
             textValue={`${tab.label} tab`}
             key={tab.key}
             hidden={tab.key === 'temporary-tab' && !showTempTab}
             to={tab.to}
           >
-            <TabContentWrap>
+            <TabContentWrap selected={selectedTabKey === tab.key}>
               <EditableTabTitle
                 label={tab.label}
                 isEditing={editingTabKey === tab.key}
@@ -208,7 +178,7 @@ export function DraggableTabBar({
               )}
               {selectedTabKey === tab.key && (
                 <DraggableTabMenuButton
-                  hasUnsavedChanges={tab.hasUnsavedChanges}
+                  hasUnsavedChanges={!!tab.unsavedChanges}
                   menuOptions={makeMenuOptions(tab)}
                   aria-label={`${tab.label} Tab Options`}
                 />
@@ -312,13 +282,14 @@ const makeTempViewMenuOptions = ({
   ];
 };
 
-const TabContentWrap = styled('span')`
+const TabContentWrap = styled('span')<{selected: boolean}>`
   white-space: nowrap;
   display: flex;
   align-items: center;
   flex-direction: row;
   padding: 0;
   gap: 6px;
+  ${p => (p.selected ? 'z-index: 1;' : 'z-index: 0;')}
 `;
 
 const StyledBadge = styled(Badge)`

@@ -10,6 +10,7 @@ import {
   DraggableTabBar,
   type Tab,
 } from 'sentry/views/issueList/groupSearchViewTabs/draggableTabBar';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 const TabPanelContainer = styled('div')`
   width: 90%;
@@ -22,6 +23,8 @@ const TABS: Tab[] = [
     key: 'one',
     label: 'Inbox',
     content: <TabPanelContainer>This is the Inbox view</TabPanelContainer>,
+    query: '',
+    querySort: IssueSortOptions.DATE,
     queryCount: 1001,
     hasUnsavedChanges: true,
   },
@@ -29,6 +32,8 @@ const TABS: Tab[] = [
     key: 'two',
     label: 'For Review',
     content: <TabPanelContainer>This is the For Review view</TabPanelContainer>,
+    query: '',
+    querySort: IssueSortOptions.DATE,
     queryCount: 50,
     hasUnsavedChanges: false,
   },
@@ -36,6 +41,8 @@ const TABS: Tab[] = [
     key: 'three',
     label: 'Regressed',
     content: <TabPanelContainer>This is the Regressed view</TabPanelContainer>,
+    query: '',
+    querySort: IssueSortOptions.DATE,
     queryCount: 100,
     hasUnsavedChanges: false,
   },
