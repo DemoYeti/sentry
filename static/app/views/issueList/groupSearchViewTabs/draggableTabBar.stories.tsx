@@ -1,11 +1,14 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import type {Node} from '@react-types/shared';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import type {DraggableTabListItemProps} from 'sentry/components/draggableTabs/item';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
+import {defined} from 'sentry/utils';
 import {
   DraggableTabBar,
   type Tab,
@@ -26,7 +29,7 @@ const TABS: Tab[] = [
     query: '',
     querySort: IssueSortOptions.DATE,
     queryCount: 1001,
-    hasUnsavedChanges: true,
+    unsavedChanges: ['a', IssueSortOptions.DATE],
   },
   {
     key: 'two',
@@ -35,7 +38,6 @@ const TABS: Tab[] = [
     query: '',
     querySort: IssueSortOptions.DATE,
     queryCount: 50,
-    hasUnsavedChanges: false,
   },
   {
     key: 'three',
@@ -44,7 +46,6 @@ const TABS: Tab[] = [
     query: '',
     querySort: IssueSortOptions.DATE,
     queryCount: 100,
-    hasUnsavedChanges: false,
   },
 ];
 
@@ -57,12 +58,20 @@ export default storyBook(DraggableTabBar, story => {
     const tempTab = {
       key: 'temporary-tab',
       label: 'Unsaved',
+      query: '',
+      querySort: IssueSortOptions.DATE,
+      queryCount: 100,
       content: <TabPanelContainer>This is the Temporary view</TabPanelContainer>,
     };
-    const defaultNewTab = {
-      key: `view-${tabs.length + 1}`,
-      label: `New View`,
-      content: <TabPanelContainer>This is the a New View</TabPanelContainer>,
+    const onReorder = (newOrder: Node<DraggableTabListItemProps>[]) => {
+      const newDraggableTabs = newOrder
+        .map(node => {
+          const foundTab = tabs.find(tab => tab.key === node.key);
+          return foundTab?.key === node.key ? foundTab : null;
+        })
+        .filter(defined);
+
+      setTabs(newDraggableTabs);
     };
 
     return (
@@ -91,7 +100,7 @@ export default storyBook(DraggableTabBar, story => {
               tempTabContent={
                 <TabPanelContainer>This is a Temporary view</TabPanelContainer>
               }
-              defaultNewTab={defaultNewTab}
+              onReorder={onReorder}
               tempTab={tempTab}
               onDiscardTempView={() => {
                 setShowTempTab(false);
