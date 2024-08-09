@@ -19,7 +19,6 @@ from sentry.identity.github import GitHubIdentityProvider, get_user_info
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
@@ -155,7 +154,7 @@ def get_document_origin(org) -> str:
 # Github App docs and list of available endpoints
 # https://docs.github.com/en/rest/apps/installations
 # https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps
-class GitHubIntegration(IntegrationInstallation, RepositoryIntegration, GitHubIssueBasic, CommitContextMixin):  # type: ignore[misc]
+class GitHubIntegration(RepositoryIntegration, GitHubIssueBasic, CommitContextMixin):  # type: ignore[misc]
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     @property

@@ -13,7 +13,6 @@ from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
@@ -93,9 +92,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitlabIntegration(
-    IntegrationInstallation, GitlabIssueBasic, RepositoryIntegration, CommitContextMixin
-):
+class GitlabIntegration(RepositoryIntegration, GitlabIssueBasic, CommitContextMixin):
     codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
 
     def __init__(self, *args, **kwargs):

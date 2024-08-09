@@ -18,7 +18,6 @@ from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatureNotImplementedError,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
@@ -227,7 +226,7 @@ class OAuthCallbackView(PipelineView):
             return pipeline.error(f"Could not fetch an access token from Bitbucket. {str(error)}")
 
 
-class BitbucketServerIntegration(IntegrationInstallation, RepositoryIntegration):
+class BitbucketServerIntegration(RepositoryIntegration):
     """
     IntegrationInstallation implementation for Bitbucket Server
     """

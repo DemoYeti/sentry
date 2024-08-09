@@ -21,7 +21,6 @@ from sentry.identity.vsts.provider import get_user_info
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
@@ -115,7 +114,7 @@ metadata = IntegrationMetadata(
 logger = logging.getLogger("sentry.integrations")
 
 
-class VstsIntegration(IntegrationInstallation, RepositoryIntegration, VstsIssueSync):
+class VstsIntegration(RepositoryIntegration, VstsIssueSync):
     logger = logger
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_forward"

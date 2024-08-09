@@ -11,7 +11,6 @@ from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
@@ -83,9 +82,7 @@ metadata = IntegrationMetadata(
 scopes = ("issue:write", "pullrequest", "webhook", "repository")
 
 
-class BitbucketIntegration(
-    IntegrationInstallation, RepositoryIntegration, BitbucketIssueBasicMixin
-):
+class BitbucketIntegration(RepositoryIntegration, BitbucketIssueBasicMixin):
     @property
     def integration_name(self) -> str:
         return "bitbucket"

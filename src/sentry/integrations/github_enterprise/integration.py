@@ -15,7 +15,6 @@ from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatureNotImplementedError,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
 )
 from sentry.integrations.github.integration import GitHubIntegrationProvider, build_repository_query
@@ -132,9 +131,7 @@ API_ERRORS = {
 }
 
 
-class GitHubEnterpriseIntegration(
-    IntegrationInstallation, GitHubIssueBasic, RepositoryIntegration, CommitContextMixin
-):
+class GitHubEnterpriseIntegration(RepositoryIntegration, GitHubIssueBasic, CommitContextMixin):
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     @property

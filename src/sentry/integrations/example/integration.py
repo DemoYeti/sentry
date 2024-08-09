@@ -9,7 +9,6 @@ from rest_framework.request import Request
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
@@ -67,7 +66,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class ExampleIntegration(IntegrationInstallation, IssueSyncMixin, RepositoryIntegration):
+class ExampleIntegration(RepositoryIntegration, IssueSyncMixin):
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_outbound"
     inbound_status_key = "sync_status_inbound"
