@@ -1,4 +1,4 @@
-import {createContext, useContext, useRef, useState} from 'react';
+import {createContext, useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -44,9 +44,13 @@ export function EventDetails({
     searchQuery,
   });
 
+  // When the search query is finished parsing, set it immediately.
+  useEffect(() => {
+    setEventDetails(details => ({...details, searchQuery}));
+  }, [searchQuery]);
+
   return (
     <EventDetailsContext.Provider value={eventDetails}>
-      {JSON.stringify(searchQuery)}
       <FilterContainer>
         <EnvironmentPageFilter />
         <SearchFilter
@@ -63,7 +67,12 @@ export function EventDetails({
         <DatePageFilter />
       </FilterContainer>
       <GroupContent navHeight={navRef?.current?.offsetHeight}>
-        <FloatingEventNavigation event={event} group={group} ref={navRef} />
+        <FloatingEventNavigation
+          event={event}
+          group={group}
+          ref={navRef}
+          appliedQuery={eventDetails.searchQuery}
+        />
         <GroupContentPadding>
           <DefaultGroupEventDetailsContent
             group={group}

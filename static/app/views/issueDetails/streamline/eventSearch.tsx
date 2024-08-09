@@ -9,9 +9,10 @@ import {
 } from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
-import {Token} from 'sentry/components/searchSyntax/parser';
+import {joinQuery, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import type {Group, Tag, TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {
   FieldKind,
   getFieldDefinition,
@@ -34,28 +35,40 @@ interface EventSearchProps {
   queryBuilderProps?: Partial<SearchQueryBuilderProps>;
 }
 
-export function useEventQuery({organization, group, environments}): string {
+export function useEventQuery({
+  organization,
+  group,
+  environments,
+}: {
+  environments: string[];
+  group: Group;
+  organization: Organization;
+}): string {
   const location = useLocation();
-  const {data = []} = useFetchIssueTags({
-    orgSlug: organization.slug,
-    groupId: group.id,
-    environment: environments,
-  });
-
-  const filterKeys = useEventSearchFilterKeys(data);
   const {query: locationQuery} = location.query;
-  let eventQuery = '';
 
+  let eventQuery = '';
   if (Array.isArray(locationQuery)) {
     eventQuery = locationQuery.join(' ');
   } else if (typeof locationQuery === 'string') {
     eventQuery = locationQuery;
   }
 
+  const {data = []} = useFetchIssueTags({
+    orgSlug: organization.slug,
+    groupId: group.id,
+    environment: environments,
+  });
+  const filterKeys = useEventSearchFilterKeys(data);
   const parsedQuery =
     parseQueryBuilderValue(eventQuery, getFieldDefinition, {
       filterKeys,
     }) ?? [];
+
+  // Removes invalid tokens from an issue stream query in an attempt to convert it to an event query.
+  // For example: "is:unresolved device.brand:samsung" -> "device.brand:samsung"
+  // Note: This is _probably_ not accounting for MANY invalid filters which could come in from the
+  // issue stream. Will likely have to refine this in the future.
   const validQuery = parsedQuery.filter(token => {
     if (token.type === Token.FREE_TEXT) {
       return false;
@@ -66,9 +79,7 @@ export function useEventQuery({organization, group, environments}): string {
     return true;
   });
 
-  console.log({validQuery});
-
-  return eventQuery;
+  return joinQuery(validQuery);
 }
 
 function useEventSearchFilterKeys(data) {
