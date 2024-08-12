@@ -562,7 +562,7 @@ class SubscriptionProcessor:
                         ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
                             metrics.incr(
                                 "incidents.alert_rules.threshold.alert",
-                                tags={"type": detection_type},
+                                tags={"detection_type": detection_type},
                             )
                             incident_trigger = self.trigger_alert_threshold(
                                 trigger, aggregation_value
