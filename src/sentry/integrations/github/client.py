@@ -633,9 +633,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient):
         """
         return self.get(f"/repos/{repo}/labels", params={"per_page": 100})
 
-    def check_file(
-        self, repo: Repository, path: str, version: str | None
-    ) -> BaseApiResponseX | None:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 
     def get_file(
